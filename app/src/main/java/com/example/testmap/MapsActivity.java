@@ -1,7 +1,11 @@
 package com.example.testmap;
 
+import androidx.core.content.PermissionChecker;
 import androidx.fragment.app.FragmentActivity;
 
+import android.content.pm.PermissionGroupInfo;
+import android.location.Address;
+import android.location.Geocoder;
 import android.os.Bundle;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -25,7 +29,18 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+
+import android.util.Log;
+import android.view.KeyEvent;
+import android.view.inputmethod.EditorInfo;
+import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
+
+import java.io.IOException;
+import java.security.Permission;
+import java.util.ArrayList;
+import java.util.List;
 
 public class MapsActivity extends AppCompatActivity
         implements
@@ -42,7 +57,8 @@ public class MapsActivity extends AppCompatActivity
                */
     private boolean permissionDenied = false;
     private GoogleMap map;
-
+    //widgets
+    private EditText mSearchText;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -51,9 +67,43 @@ public class MapsActivity extends AppCompatActivity
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
-     //   fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+        //search
+     mSearchText = (EditText) findViewById(R.id.input_serch);
     }
 
+    //new method to search fältet
+    private void init(){
+      //  Log.d(TAG,"init: initializing");
+        mSearchText.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+            @Override
+            public boolean onEditorAction(TextView textView, int actionId, KeyEvent keyEvent) {
+                if (actionId== EditorInfo.IME_ACTION_SEARCH
+                            ||actionId==EditorInfo.IME_ACTION_DONE
+                            || keyEvent.getAction()==keyEvent.ACTION_DOWN
+                            || keyEvent.getAction()==keyEvent.KEYCODE_ENTER){
+                    //EXECUTE OUR LOCATION FOR SEARCHING
+                        geoLocate();
+                }
+                return false;
+            }
+        });
+
+    }
+    private void  geoLocate(){
+        //Log.d(TAG,"geoLocate : geoLocation");
+        String searchString = mSearchText.getText().toString();
+        Geocoder geocoder= new Geocoder(MapsActivity.this);
+        List <Address> list= new ArrayList<>();
+        try {
+            list= geocoder.getFromLocationName(searchString,1);
+        }catch (IOException e){
+            //Log.e(TAG,"geoLocate: IOEXeption"+ e.getMessage());
+        }
+        if(list.size()>0){
+            Address address= list.get(0);
+            Toast.makeText(this,address.toString(),Toast.LENGTH_LONG).show();
+        }
+    }
     /**
      * Manipulates the map once available.
      * This callback is triggered when the map is ready to be used.
@@ -69,6 +119,7 @@ public class MapsActivity extends AppCompatActivity
         map.setOnMyLocationButtonClickListener(this);
         map.setOnMyLocationClickListener(this);
         enableMyLocation();
+        init();
     }
               private void enableMyLocation() {
                   if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
@@ -135,6 +186,7 @@ public class MapsActivity extends AppCompatActivity
                * Displays a dialog with error message explaining that the location permission is missing.
                */
               private void showMissingPermissionError() {
+
                //   PermissionUtils.PermissionDeniedDialog
                  //         .newInstance(true).show(getSupportFragmentManager(), "dialog");
               }
